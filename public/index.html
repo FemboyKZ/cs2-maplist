@@ -510,10 +510,23 @@
     URL.revokeObjectURL(a.href);
   };
 
+  // API may return several entries per workshop_id (e.g. old invalid + current approved).
+  // Keep one per workshop_id, preferring an approved entry.
+  function dedupe(list) {
+    const byId = new Map();
+    for (const m of list) {
+      const prev = byId.get(m.workshop_id);
+      if (!prev || (m.state === "approved" && prev.state !== "approved")) {
+        byId.set(m.workshop_id, m);
+      }
+    }
+    return [...byId.values()];
+  }
+
   fetch(API)
     .then((r) => r.json())
     .then((d) => {
-      maps = d.values || [];
+      maps = dedupe(d.values || []);
       $("#status").textContent = `Loaded ${maps.length} maps from CS2KZ API.`;
       render();
     })
